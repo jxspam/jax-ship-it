@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ship It</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============ DESIGN TOKENS: "Boarding Pass" (sand paper, ink, Golden Gate orange) ============ */
+:root{
+  --bg:#f1ebdf;
+  --paper:#f8f4ec;
+  --ink:#1c1a16;
+  --ink-70:rgba(28,26,22,.7);
+  --ink-50:rgba(28,26,22,.5);
+  --ink-30:rgba(28,26,22,.3);
+  --line:rgba(28,26,22,.16);
+  --accent:#c4442f;        /* International Orange, the bridge */
+  --accent-12:rgba(196,68,47,.12);
+  --serif:"Instrument Serif",Georgia,serif;
+  --sans:"Inter Tight",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .09 0 0 0 0 .07 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+main{position:relative;height:100%}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+  padding:5vh clamp(24px,6vw,110px) 9vh}
+.slide.active{display:flex;animation:in .45s cubic-bezier(.2,.7,.2,1)}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* type */
+h1,h2{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;line-height:.95}
+h1{font-size:clamp(3.2rem,9.5vw,9.5rem)}
+h2{font-size:clamp(2.6rem,6.4vw,7.5rem);max-width:22ch}
+em{font-style:italic;color:var(--accent)}
+.mono{font-family:var(--mono);letter-spacing:.04em}
+.label{font-family:var(--mono);font-size:clamp(.75rem,1.05vw,1.2rem);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-50)}
+.big{font-family:var(--serif);font-size:clamp(3rem,7vw,7rem);line-height:.9}
+.center{align-items:center;text-align:center}
+.center h2{max-width:none}
+
+/* perforation + boarding pass */
+.pass{display:grid;grid-template-columns:1fr auto;background:var(--paper);border:1px solid var(--line);
+  border-radius:18px;box-shadow:0 30px 60px -40px rgba(28,26,22,.45);overflow:hidden;max-width:1500px;width:100%}
+.pass .main{padding:clamp(20px,3.4vw,52px)}
+.pass .stub{border-left:2px dashed var(--line);padding:clamp(20px,3vw,44px);display:flex;flex-direction:column;justify-content:space-between;min-width:16rem;position:relative}
+.pass .stub::before,.pass .stub::after{content:"";position:absolute;left:-13px;width:24px;height:24px;border-radius:50%;background:var(--bg)}
+.pass .stub::before{top:-12px}.pass .stub::after{bottom:-12px}
+.route{display:grid;grid-template-columns:auto 1fr auto 1fr auto;align-items:center;gap:clamp(10px,2vw,28px);margin-top:2.2rem}
+.stop .code{font-family:var(--serif);font-size:clamp(3rem,9vw,11rem);line-height:.85}
+.stop .city{margin-top:.6rem}
+.leg{position:relative;height:2px;background-image:linear-gradient(90deg,var(--ink-30) 50%,transparent 0);background-size:12px 2px}
+.leg i{position:absolute;inset:0;background:var(--accent);transform-origin:left;transform:scaleX(0)}
+.slide.active .leg i{animation:draw 1.1s .35s cubic-bezier(.6,0,.2,1) forwards}
+.slide.active .leg:nth-of-type(2) i{animation-delay:1.5s}
+.leg svg{position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:22px;height:22px;fill:var(--accent);opacity:0}
+.slide.active .leg svg{animation:pop .2s 1.4s forwards}
+.slide.active .leg:nth-of-type(2) svg{animation-delay:2.6s}
+@keyframes draw{to{transform:scaleX(1)}}
+@keyframes pop{to{opacity:1}}
+.kv{display:grid;gap:.25rem}
+.kv b{font-family:var(--mono);font-weight:500;font-size:clamp(.9rem,1.6vw,1.8rem)}
+.barcode{height:56px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 5px,var(--ink) 5px 6px,transparent 6px 9px,var(--ink) 9px 12px,transparent 12px 14px)}
+
+/* stamps: journey chapters */
+.chapter{display:grid;grid-template-columns:auto 1fr;gap:clamp(24px,5vw,90px);align-items:center}
+.stamp{width:clamp(150px,22vw,340px);aspect-ratio:1;border:3px solid var(--accent);border-radius:50%;color:var(--accent);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-9deg);
+  outline:1px solid var(--accent);outline-offset:-12px;text-align:center}
+.stamp .code{font-family:var(--serif);font-size:clamp(2.6rem,6vw,6.4rem);line-height:1}
+.stamp .label{color:var(--accent)}
+.slide.active .stamp{animation:stamp .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes stamp{from{transform:rotate(-9deg) scale(1.5);opacity:0}to{transform:rotate(-9deg) scale(1);opacity:1}}
+
+.grid{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:2.4rem}
+.grid>div{background:var(--paper);padding:clamp(16px,2.2vw,32px);display:flex;flex-direction:column;gap:.6rem}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.grid .n{font-family:var(--serif);font-size:clamp(2.2rem,4.8vw,6rem);line-height:.9}
+.grid .t{font-weight:600;font-size:clamp(1rem,1.8vw,2rem)}
+.grid .s{color:var(--ink-70);font-size:clamp(.85rem,1.35vw,1.5rem)}
+
+/* bar rows (draw from zero) */
+.bars{display:grid;gap:1.4vw;margin-top:2.4rem;max-width:1500px;width:100%;font-size:clamp(1rem,1.7vw,1.9rem)}
+.bar{display:grid;grid-template-columns:minmax(9rem,22vw) 1fr auto;align-items:center;gap:1.4rem}
+.bar .track{height:clamp(18px,3.6vh,44px);background:var(--accent-12);border-radius:4px;overflow:hidden}
+.bar .fill{height:100%;width:0;background:var(--ink);border-radius:4px;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.bar.hi .fill{background:var(--accent)}
+.bar .v{font-family:var(--mono);font-weight:500;min-width:8vw;text-align:right}
+
+/* photo */
+.photo{display:grid;grid-template-columns:1fr minmax(260px,30vw);gap:clamp(24px,5vw,80px);align-items:center}
+.polaroid{background:#fff;padding:12px 12px 48px;box-shadow:0 30px 60px -30px rgba(28,26,22,.5);transform:rotate(2.5deg)}
+.polaroid img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;filter:saturate(.9)}
+
+/* checkpoint */
+.check{background:var(--ink);color:var(--paper)}
+body.dark{background:var(--ink)}
+.check .label{color:rgba(248,244,236,.55)}
+.check em{color:#f08a6d}
+
+/* stack of steps */
+.steps{display:grid;gap:0;margin-top:2.2rem;max-width:1500px;width:100%;border-top:1px solid var(--line)}
+.steps>div{display:grid;grid-template-columns:5vw 1fr auto;gap:1.4rem;align-items:baseline;padding:1.4vw 0;border-bottom:1px solid var(--line)}
+.steps .i{font-family:var(--mono);color:var(--accent);font-size:clamp(.9rem,1.4vw,1.6rem)}
+.steps .t{font-family:var(--serif);font-size:clamp(1.6rem,3.6vw,4.2rem);line-height:1}
+.steps .s{color:var(--ink-50);font-family:var(--mono);font-size:clamp(.85rem,1.4vw,1.6rem)}
+
+/* footer-less nav: counter + progress only */
+.count{position:fixed;right:clamp(16px,3vw,40px);bottom:20px;font-family:var(--mono);font-size:clamp(.75rem,.9vw,1rem);color:var(--ink-50);font-variant-numeric:tabular-nums;z-index:3}
+body.dark .count{color:rgba(248,244,236,.5)}
+.progress{position:fixed;left:0;right:0;bottom:0;height:4px;z-index:3}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.src{position:absolute;left:clamp(24px,6vw,110px);bottom:20px;font-family:var(--mono);font-size:clamp(.65rem,.8vw,.9rem);color:var(--ink-30)}
+.check .src{color:rgba(248,244,236,.3)}
+
+@media (max-width:760px){
+  .slide{padding:4vh 16px 8vh;overflow-y:auto;justify-content:flex-start;padding-top:8vh}
+  .pass{grid-template-columns:1fr}.pass .stub{border-left:0;border-top:2px dashed var(--line)}
+  .chapter,.photo{grid-template-columns:1fr}
+  .g3,.g4{grid-template-columns:1fr 1fr}
+  .bar{grid-template-columns:1fr auto}.bar .track{grid-column:1/-1;grid-row:2}
+}
+/* logos */
+.logo{width:clamp(40px,4.6vw,84px);height:clamp(40px,4.6vw,84px);border-radius:12px;object-fit:contain;background:#fff;border:1px solid var(--line);padding:4px;flex:none}
+.logo.dark{background:#0b0b0b}
+.org{display:flex;align-items:center;gap:.8rem}
+.when{font-family:var(--mono);font-size:clamp(.8rem,1.15vw,1.3rem);color:var(--accent);letter-spacing:.02em}
+
+/* phases strip */
+.phases{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:1.6rem;background:var(--paper)}
+.phases>div{padding:clamp(12px,1.6vw,24px);display:flex;flex-direction:column;gap:.3rem}
+.phases>div+div{border-left:2px dashed var(--line)}
+.phases .code{font-family:var(--serif);font-size:clamp(2rem,4vw,4.4rem);line-height:.9}
+
+/* gantt */
+.gantt{margin-top:1.6rem;display:grid;gap:clamp(6px,.9vw,14px);width:100%}
+.grow{display:grid;grid-template-columns:minmax(14rem,26vw) 1fr;align-items:center;gap:1.2rem}
+.grow .org .t{font-weight:600;font-size:clamp(.95rem,1.4vw,1.6rem);line-height:1.1}
+.grow .org .when{font-size:clamp(.7rem,.95vw,1.05rem)}
+.gtrack{position:relative;height:clamp(16px,2.6vh,30px);background-image:linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:25% 100%}
+.gbar{position:absolute;top:0;bottom:0;border-radius:5px;background:var(--ink);transform-origin:left;transform:scaleX(0)}
+.gbar.hi{background:var(--accent)}
+.gbar.open{background:linear-gradient(90deg,var(--accent) 70%,transparent)}
+.slide.active .gbar{animation:draw .9s cubic-bezier(.2,.7,.2,1) forwards}
+.gaxis{display:grid;grid-template-columns:minmax(14rem,26vw) 1fr;gap:1.2rem}
+.gaxis .yrs{display:grid;grid-template-columns:repeat(4,1fr);font-family:var(--mono);font-size:clamp(.7rem,.95vw,1.05rem);color:var(--ink-50)}
+
+/* photo wall */
+.wallslide{padding:0}
+.wall{position:absolute;inset:0;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(4,1fr);gap:6px;padding:6px}
+.wall img{width:100%;height:100%;object-fit:cover;border-radius:6px;opacity:0;transform:scale(.96)}
+.slide.active .wall img{animation:wallIn .5s ease-out forwards}
+@keyframes wallIn{to{opacity:1;transform:none}}
+.wallcard{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--paper);border-radius:18px;padding:clamp(18px,2.6vw,40px) clamp(24px,3.4vw,56px);box-shadow:0 30px 80px -20px rgba(0,0,0,.55);text-align:center;z-index:2}
+.wallcard h2{max-width:none}
+
+/* quote */
+.quote{font-family:var(--serif);font-size:clamp(2.2rem,5vw,5.6rem);line-height:1;max-width:20ch}
+.quote em{font-style:italic}
+
+/* stacked composition bar */
+.stack{display:flex;height:clamp(54px,9vh,96px);border-radius:10px;overflow:hidden;margin-top:2rem;width:100%}
+.stack>div{display:flex;align-items:flex-end;padding:.6rem .7rem;color:#fff;font-family:var(--mono);font-size:clamp(.7rem,1vw,1.1rem);white-space:nowrap;overflow:hidden;width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.stack .a{background:var(--accent)}.stack .b{background:#9c3524}.stack .c{background:#6e2619}.stack .d{background:var(--ink)}.stack .e{background:rgba(28,26,22,.35);color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:.6rem 1.6rem;margin-top:1rem;font-family:var(--mono);font-size:clamp(.75rem,1.05vw,1.15rem);color:var(--ink-70)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:.45rem;vertical-align:-1px}
+
+/* vs */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:2rem;width:100%}
+.vs>div{background:var(--paper);padding:clamp(14px,1.8vw,26px);display:flex;gap:.9rem;align-items:baseline;font-size:clamp(1.05rem,2vw,2.3rem)}
+.vs .h{font-family:var(--mono);font-size:clamp(1rem,2vw,2.3rem);letter-spacing:.14em;text-transform:uppercase}
+.vs .ok{color:#2f7a4a;font-weight:700}.vs .no{color:var(--accent);font-weight:700}
+.vs .dim{color:var(--ink-50)}
+
+/* checkpoint Q&A */
+.cpgrid{display:grid;grid-template-columns:auto 1fr;gap:clamp(24px,4vw,70px);align-items:center;width:100%;max-width:1500px}
+.qr{background:#fff;border-radius:16px;padding:12px;width:clamp(180px,22vw,340px)}
+.qr img{display:block;width:100%}
+.qurl{font-family:var(--mono);font-size:clamp(.9rem,1.4vw,1.6rem);margin-top:1rem;color:#f08a6d}
+.qlist{display:grid;gap:10px;max-height:62vh;overflow:hidden;text-align:left}
+.qlist .item{background:rgba(248,244,236,.07);border:1px solid rgba(248,244,236,.14);border-radius:12px;padding:clamp(10px,1.2vw,18px) clamp(12px,1.4vw,22px);display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start}
+.qlist .item p{font-size:clamp(1rem,1.6vw,1.8rem);line-height:1.25}
+.qlist .item .who{font-family:var(--mono);font-size:clamp(.7rem,.9vw,1rem);color:rgba(248,244,236,.5);margin-top:.4rem}
+.qlist .item .v{font-family:var(--mono);color:#f08a6d;font-size:clamp(.9rem,1.3vw,1.4rem)}
+.qlist .item .x{display:none;background:none;border:0;color:rgba(248,244,236,.4);cursor:pointer;font-size:1rem;margin-left:.6rem}
+body.presenter .qlist .item .x{display:inline}
+.qlist .none{color:rgba(248,244,236,.4);font-family:var(--mono)}
+
+/* toasts */
+.toasts{position:fixed;top:20px;right:20px;z-index:50;display:grid;gap:10px;width:min(440px,calc(100vw - 32px))}
+.toast{background:var(--ink);color:var(--paper);border-radius:14px;padding:14px 18px;box-shadow:0 20px 50px -15px rgba(0,0,0,.6);border-left:5px solid var(--accent);animation:tin .35s cubic-bezier(.2,.7,.2,1)}
+.toast .label{color:rgba(248,244,236,.55)}
+.toast p{font-size:1.15rem;line-height:1.3;margin-top:.35rem}
+.toast.out{animation:tout .3s forwards}
+@keyframes tin{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateX(30px)}}
+body.dark .toast{background:var(--paper);color:var(--ink)}
+body.dark .toast .label{color:var(--ink-50)}
+@media (max-width:760px){.grow,.gaxis{grid-template-columns:1fr}.gaxis .pad{display:none}.cpgrid,.vs{grid-template-columns:1fr}.wall{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr)}.phases{grid-template-columns:1fr}.phases>div+div{border-left:0;border-top:2px dashed var(--line)}}
+.slide>*{flex-shrink:0}
+.grow .logo{width:clamp(30px,3.2vw,58px);height:clamp(30px,3.2vw,58px)}.gantt{gap:clamp(4px,.6vw,10px)}.phases{margin-top:1rem}.phases .code{font-size:clamp(1.8rem,3.4vw,3.8rem)}
+.bar .t{display:flex;align-items:center;gap:.7rem}
+.mini{width:clamp(24px,2.4vw,44px);height:clamp(24px,2.4vw,44px);border-radius:8px;object-fit:contain;background:#fff;border:1px solid var(--line);flex:none}
+.ycgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:1.6rem;width:100%}
+.ycgrid>div{background:var(--paper);padding:clamp(12px,1.4vw,22px);display:grid;gap:.7rem;align-content:start}
+.ycgrid .city{font-family:var(--serif);font-size:clamp(1.6rem,2.6vw,3rem);line-height:1}
+.ycco{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:center}
+.ycco b{font-weight:600;font-size:clamp(.9rem,1.25vw,1.4rem);display:block}
+.ycco span{color:var(--ink-70);font-size:clamp(.75rem,1vw,1.1rem)}
+.ycco .when{font-size:clamp(.65rem,.85vw,.95rem)}
+.raise{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:2rem;width:100%}
+.raise>div{background:var(--paper);padding:clamp(16px,2vw,30px);display:grid;gap:.8rem;align-content:start}
+.raise .n{font-family:var(--serif);font-size:clamp(2.4rem,5vw,5.6rem);line-height:.9}
+.raise .vcs{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.4rem}
+.raise .vcs span{font-size:clamp(.8rem,1.1vw,1.2rem);color:var(--ink-70)}
+@media (max-width:760px){.ycgrid,.raise{grid-template-columns:1fr}}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,3vw,56px);align-items:center;margin-top:1.4rem;width:100%}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.4vw,20px);align-items:start}
+.shot{margin:0;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 20px 40px -30px rgba(28,26,22,.5)}
+.shot img{display:block;width:100%;max-height:58vh;object-fit:contain;background:#fff}
+.shot figcaption{font-family:var(--mono);font-size:clamp(.75rem,1.05vw,1.15rem);padding:.6rem .8rem;border-top:1px solid var(--line);background:var(--paper);color:var(--ink-70)}
+.shot.win{outline:3px solid var(--accent)}
+.shot.win figcaption b{color:var(--accent)}
+.shots.big2 .shot img{max-height:56vh}
+.shots.big2{margin-top:1.2rem;max-width:1300px}
+.shot.wide{margin:1rem 0;max-width:1200px}.shot.wide img{max-height:30vh}
+.shot.funnel img{max-height:62vh}
+.steps.tight>div{padding:.8vw 0;grid-template-columns:4vw 1fr}
+.steps.tight .t{font-size:clamp(1.2rem,2.3vw,2.8rem)}
+.vs span+span{margin-top:.2rem}
+.cmd{font-family:var(--mono);background:var(--ink);color:var(--paper);border-radius:12px;padding:clamp(12px,1.4vw,22px);font-size:clamp(.85rem,1.3vw,1.5rem);line-height:1.45;white-space:pre-wrap;margin-top:.6rem}
+.cmd .c{color:rgba(248,244,236,.45)}
+.vid{width:100%;border-radius:12px;background:#000;display:block;max-height:62vh}
+.tag{font-family:var(--mono);font-size:clamp(.7rem,1vw,1.1rem);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.flow{display:grid;gap:.7rem;margin-top:1rem}
+.flow>div{display:grid;grid-template-columns:7.5rem 1fr;gap:1rem;align-items:start;font-size:clamp(1rem,1.6vw,1.8rem)}
+.timer{font-family:var(--serif);font-size:clamp(8rem,26vw,26rem);line-height:.9;color:var(--accent);font-variant-numeric:tabular-nums}
+.timer.over{color:var(--ink)}
+.qrs{display:flex;gap:clamp(16px,3vw,48px);flex-wrap:wrap;margin-top:1.4rem}
+.qrs>div{display:grid;gap:.6rem;justify-items:start}
+.qrs .qr{width:clamp(150px,15vw,240px)}
+@media (max-width:760px){.two,.shots{grid-template-columns:1fr}}
+.bigimg{display:block;width:100%;max-height:68vh;object-fit:contain;margin:1rem auto 0;mix-blend-mode:multiply}
+/* questions bubble (presenter) */
+.qb{position:fixed;right:20px;bottom:44px;z-index:60;display:none}
+body.presenter .qb{display:block}
+.qb-btn{width:58px;height:58px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:1.5rem;cursor:pointer;box-shadow:0 14px 30px -10px rgba(0,0,0,.5);position:relative}
+.qb-btn .badge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;border-radius:11px;background:var(--ink);color:var(--paper);font:600 .75rem var(--mono);display:none;align-items:center;justify-content:center;padding:0 5px}
+.qb-btn .badge.on{display:flex}
+body.dark .qb-btn .badge{background:var(--paper);color:var(--ink)}
+.qb-panel{position:absolute;right:0;bottom:70px;width:min(460px,calc(100vw - 40px));max-height:70vh;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 30px 60px -20px rgba(0,0,0,.55);display:none;flex-direction:column;overflow:hidden}
+.qb.open .qb-panel{display:flex}
+.qb-head{display:flex;align-items:center;gap:6px;padding:10px;border-bottom:1px solid var(--line)}
+.qb-head button{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:5px 9px;font:600 .8rem var(--sans);cursor:pointer}
+.qb-head button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.qb-head .pip{margin-left:auto}
+.qb-list{overflow:auto;padding:10px;display:grid;gap:8px}
+.qb-item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:8px;background:#fff}
+.qb-item p{font-size:1rem;line-height:1.35}
+.qb-item .who{font:.7rem var(--mono);color:var(--ink-50);margin-top:4px}
+.qb-item .v{font:600 .85rem var(--mono);color:var(--accent)}
+.qb-item .x{background:none;border:0;color:var(--ink-30);cursor:pointer;margin-left:6px}
+.qb-item.new{border-color:var(--accent)}
+.qb-empty{color:var(--ink-50);font:.85rem var(--mono);padding:12px;text-align:center}
+.count{right:92px}
+@media (max-width:760px){.two{grid-template-columns:1fr!important}.two img{max-height:46vh!important}.vs{grid-template-columns:1fr!important}}
+/* always-on slide access QR (bottom right) */
+.slideqr{position:fixed;right:20px;bottom:16px;z-index:55;display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:6px 12px 6px 6px;box-shadow:0 10px 24px -14px rgba(28,26,22,.45)}
+.slideqr img{width:clamp(56px,5vw,84px);height:clamp(56px,5vw,84px);display:block;background:#fff;border-radius:6px}
+.slideqr .t{font:600 clamp(.7rem,.9vw,1rem) var(--sans);color:var(--ink)}
+.slideqr .u{font:clamp(.65rem,.8vw,.9rem) var(--mono);color:var(--accent)}
+.slideqr .count{position:static;font-size:clamp(.65rem,.8vw,.9rem);margin-top:2px}
+body.dark .slideqr{background:#2a2722;border-color:rgba(248,244,236,.14)}
+body.dark .slideqr .t{color:var(--paper)}
+.qb{bottom:calc(clamp(56px,5vw,84px) + 36px)}
+@media (max-width:760px){.slideqr{display:none}}
+.ycslide .ycgrid>div{gap:.5rem}.ycslide .ycco b{font-size:clamp(.85rem,1.1vw,1.25rem)}.ycslide .ycco span{font-size:clamp(.7rem,.85vw,.95rem)}.ycslide .mini{width:clamp(22px,2vw,36px);height:clamp(22px,2vw,36px)}
+/* ============ Launch library theme (AdaL pink, Space Grotesk, ink outlines, offset pink shadows) ============ */
+:root{
+  --bg:#FFF7FA;--bg-2:#FFE9F1;--dot:#F6CFDE;--paper:#FFFFFF;
+  --ink:#16070D;--ink-70:#3D2A33;--ink-50:#6B5560;--ink-30:rgba(22,7,13,.3);--line:#EBC9D7;
+  --accent:#D93A78;--pink:#FF5898;--accent-12:rgba(255,88,152,.14);--code-bg:#FFF4F8;
+  --serif:"Space Grotesk",system-ui,sans-serif;--sans:"Space Grotesk",system-ui,sans-serif;
+}
+html,body{background-color:var(--bg);
+  background-image:radial-gradient(var(--dot) 1.4px,transparent 1.4px),radial-gradient(1200px 600px at 50% -10%,var(--bg-2),transparent 70%);
+  background-size:24px 24px,100% 100%}
+body::before{display:none}
+h1,h2{font-weight:700;letter-spacing:-.04em;line-height:.95}
+h1{font-size:clamp(3rem,8vw,8.4rem)}
+h2{font-size:clamp(2.2rem,5.2vw,6.2rem)}
+em{font-style:normal;color:var(--accent)}
+.label{color:var(--accent);font-weight:600}
+.quote{font-weight:500;letter-spacing:-.02em;line-height:1.1}
+.big,.grid .n,.stop .code{font-weight:700;letter-spacing:-.03em}
+
+/* cards */
+.grid,.vs{background:var(--ink);gap:2px;border:2px solid var(--ink);border-radius:24px;box-shadow:6px 6px 0 var(--line)}
+.grid>div,.vs>div{background:var(--paper)}
+.grid .s,.vs .dim{color:var(--ink-50)}
+.tc>div.on{background:var(--pink);color:var(--ink)}
+.tc>div.on .t{color:var(--ink)}
+.steps{border-top:2px solid var(--ink)}
+.steps>div{border-bottom:2px dashed var(--line)}
+.steps .i{color:var(--accent);font-weight:600}
+.steps .t{font-weight:600;letter-spacing:-.02em;font-size:clamp(1.4rem,3vw,3.4rem)}
+.cmd{background:var(--code-bg);color:var(--ink);border:2px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--pink)}
+.vid,.bigimg,.shot img{border:2px solid var(--ink);border-radius:18px;box-shadow:8px 8px 0 var(--pink);background:#FBEFF4}
+.shot{border:0;box-shadow:none;background:none}
+.qr{border:2px solid var(--ink);box-shadow:4px 4px 0 var(--pink)}
+.logo{border:2px solid var(--ink)}
+.when{color:var(--accent)}
+.progress i{background:var(--pink)}
+.slideqr{background:#fff;border:2px solid var(--ink);border-radius:16px;box-shadow:4px 4px 0 var(--pink)}
+.slideqr .u{color:var(--accent)}
+.src{color:var(--ink-50)}
+
+/* part and checkpoint slides: pink gradient instead of dark */
+.check{background:linear-gradient(160deg,#FFF0F5,#FFB3CF);color:var(--ink)}
+body.dark{background:#FFD3E3}
+.check .label{color:var(--accent)}
+.check em{color:var(--accent)}
+.check .src{color:var(--ink-50)}
+.qurl{color:var(--accent)}
+.qlist .item{background:#fff;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--line)}
+.qlist .item .who,.qlist .none,.qlist .item .x{color:var(--ink-50)}
+.qlist .item .v{color:var(--accent)}
+body.dark .slideqr{background:#fff;border-color:var(--ink)}
+body.dark .slideqr .t{color:var(--ink)}
+body.dark .count{color:var(--ink-50)}
+.toast{background:#fff;color:var(--ink);border:2px solid var(--ink);box-shadow:6px 6px 0 var(--pink)}
+.toast .label{color:var(--accent)}
+
+/* floating mascots and 3D icons */
+.fl{position:absolute;pointer-events:none;z-index:0;filter:drop-shadow(0 18px 24px rgba(217,58,120,.22));animation:bob 6s ease-in-out infinite}
+.fl img{width:100%;display:block}
+.slide>*:not(.fl){position:relative;z-index:1}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-18px) rotate(calc(var(--r,0deg) * -1))}}
+
+/* summary visuals */
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch;gap:clamp(8px,1.2vw,20px);margin-top:2.2rem;width:100%}
+.flow .c{background:#fff;border:2px solid var(--ink);border-radius:24px;box-shadow:6px 6px 0 var(--line);padding:clamp(16px,2vw,30px);display:flex;flex-direction:column;gap:.6rem}
+.flow .c.hot{box-shadow:6px 6px 0 var(--pink)}
+.flow .c .k{font-family:var(--mono);font-size:clamp(.75rem,1vw,1.1rem);color:var(--accent);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.flow .c .t{font-weight:700;font-size:clamp(1.3rem,2.4vw,2.8rem);letter-spacing:-.03em;line-height:1}
+.flow .c .s{color:var(--ink-50);font-size:clamp(.85rem,1.3vw,1.45rem);line-height:1.3}
+.flow .ar{align-self:center;font-size:clamp(1.6rem,3vw,3.4rem);color:var(--accent);font-weight:700}
+.waves{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,2vw,30px);margin-top:3rem;width:100%}
+.waves::before{content:"";position:absolute;left:0;right:0;top:14px;height:4px;background:repeating-linear-gradient(90deg,var(--ink) 0 14px,transparent 14px 24px)}
+.waves>div{position:relative;padding-top:3rem}
+.waves .dot{position:absolute;top:0;left:0;width:32px;height:32px;border-radius:50%;background:var(--pink);border:2px solid var(--ink)}
+.waves .hot .dot{background:var(--ink);box-shadow:0 0 0 6px var(--pink)}
+.waves .y{font-family:var(--mono);color:var(--accent);font-weight:600;font-size:clamp(.85rem,1.3vw,1.5rem)}
+.waves .t{font-weight:700;font-size:clamp(1.4rem,2.8vw,3.2rem);letter-spacing:-.03em;line-height:1;margin:.5rem 0}
+.waves .s{color:var(--ink-50);font-size:clamp(.9rem,1.35vw,1.5rem);line-height:1.3}
+@media (max-width:760px){.flow{grid-template-columns:1fr}.flow .ar{transform:rotate(90deg);justify-self:center}.waves{grid-template-columns:1fr}.waves::before{display:none}}
+.slide>.src{position:absolute}
+
+/* agenda side panel */
+.ag{position:fixed;left:12px;top:12px;z-index:60;font-family:var(--sans)}
+.ag-pill{display:flex;align-items:center;gap:.6rem;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:6px 14px 6px 8px;box-shadow:3px 3px 0 var(--pink);cursor:pointer;font:inherit;color:var(--ink)}
+.ag-clock{background:var(--ink);color:#fff;border-radius:999px;padding:3px 10px;font:600 clamp(.75rem,.95vw,1rem) var(--mono)}
+.ag-now{font-weight:600;font-size:clamp(.75rem,.95vw,1rem);max-width:22vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-left{font:600 clamp(.7rem,.85vw,.95rem) var(--mono);color:var(--accent)}
+.ag-left.over{color:#fff;background:var(--accent);border-radius:999px;padding:2px 8px}
+.ag-panel{display:none;margin-top:10px;background:#fff;border:2px solid var(--ink);border-radius:20px;box-shadow:6px 6px 0 var(--pink);padding:14px 16px;width:min(360px,80vw)}
+.ag.open .ag-panel{display:block}
+.ag ol{list-style:none;margin-top:.6rem;display:grid;gap:2px}
+.ag li{display:grid;grid-template-columns:4.6rem 1fr;gap:.6rem;padding:7px 8px;border-radius:10px;font-size:.95rem;align-items:baseline}
+.ag li .t{font:600 .85rem var(--mono);color:var(--ink-50)}
+.ag li.done{opacity:.45}
+.ag li.cur{background:var(--pink);color:var(--ink);font-weight:700}
+.ag li.cur .t{color:var(--ink)}
+.ag li.clock{outline:2px dashed var(--accent);outline-offset:-2px}
+@media (max-width:760px){.ag{display:none}}
+.slideqr{top:12px;bottom:auto;right:12px}
+.ag li{cursor:pointer}
+.ag li:hover{background:var(--bg-2)}
+.ag li.cur:hover{background:var(--pink)}
+
+/* Discord box under the slide access box */
+.qrbar{position:fixed;top:12px;right:12px;z-index:55;display:flex;gap:12px;align-items:stretch}
+.qrbar .slideqr{position:static!important}
+.dcqr{text-decoration:none}
+@media (max-width:760px){.qrbar{display:none}}
+
+.cmd{white-space:pre-wrap;text-align:left}
+.pair{display:grid;gap:clamp(12px,1.6vw,28px);width:100%;margin-top:1.2rem;align-items:start}
+.pair>div{display:flex;flex-direction:column;gap:.6rem;min-width:0}
+.pair video{width:100%;max-height:60vh;border-radius:14px;background:#000;object-fit:contain}
+.pair .t{font-weight:600;font-size:clamp(1rem,1.6vw,1.8rem)}
+.pair .t em{font-style:normal;color:var(--accent)}
+</style>
+</head>
+<body>
+<main id="deck" onclick="">
+<section data-ag="w" class="slide" data-cp="1"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-0s;--r:10deg"><img src="img/ll/rocket.webp" alt=""></div>
+    <div class="two" style="grid-template-columns:1.2fr 1fr">
+      <div>
+        <h1>Don't just prompt it.<br><em>Ship it.</em></h1>
+        <div class="when" style="margin-top:1.4rem;font-size:clamp(1.2rem,2.2vw,2.6rem)">Tue 27 Oct · 9:00 AM PT</div>
+      </div>
+      <img src="img/poster.png" alt="" style="width:100%;max-height:78vh;object-fit:contain;border-radius:18px;box-shadow:0 30px 60px -30px rgba(28,26,22,.6)">
+    </div>
+  </section>
+<section data-ag="w" class="slide" data-cp="1"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-1s;--r:10deg"><img src="img/ll/megaphone.webp" alt=""></div>
+    <h2>Before we <em>start</em></h2>
+    <div class="steps">
+      <div><span class="i">01</span><span class="t">Redeem SHIPIT1MO</span><span class="s">1 month of Pro</span></div>
+      <div><span class="i">02</span><span class="t">Install AdaL Desktop</span><span class="s">adalagent.ai/install</span></div>
+      <div><span class="i">03</span><span class="t">Open your product folder</span></div>
+      <div><span class="i">04</span><span class="t">Say hi in Discord</span><span class="s">#🥷adal-online-hackathon</span></div>
+    </div>
+  </section>
+<section data-ag="w" class="slide" data-cp="1"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-2s;--r:10deg"><img src="img/ll/clapper.webp" alt=""></div>
+    <h2>1 month of AdaL Pro, <em>free</em></h2>
+    <div class="qrs" style="align-items:center">
+      <div class="qr" style="width:clamp(200px,22vw,340px)"><img alt="" data-qr="https://adal.sylph.ai/sign-up?redirect_url=%2Fsubscription%3Ftier%3Dpro%26billing_interval%3Dmonthly%26promo%3DSHIPIT1MO&amp;utm_source=luma&amp;utm_medium=event&amp;utm_campaign=dont-just-prompt-it-2026-10&amp;utm_content=jax_slides_promo_1"></div>
+      <div class="grid g2" style="margin-top:0;min-width:44vw;justify-items:stretch;gap:1px">
+        <div><span class="label">Code</span><div class="n" style="font-family:var(--mono);font-size:clamp(1.6rem,3.2vw,3.6rem)">SHIPIT1MO</div></div>
+        <div><span class="label">Install</span><div class="n" style="font-size:clamp(1.2rem,2.2vw,2.6rem)">adalagent.ai/install</div></div>
+      </div>
+    </div>
+  </section>
+<section data-ag="p1" class="slide check center" data-cp="1"><div class="fl" style="width:clamp(110px,11vw,190px);right:2.5vw;bottom:14vh;--r:-6deg"><img src="img/ll/avatar_working_t1.webp" alt=""></div><div class="fl" style="width:clamp(60px,5.5vw,100px);left:2vw;bottom:8vh;animation-delay:-2s;--r:10deg"><img src="img/ll/trophy.webp" alt=""></div>
+    <h1 style="font-size:clamp(3rem,7.4vw,7.6rem)">Everyone builds.<br><em>Nobody ships.</em></h1>
+  </section>
+<section data-ag="p1" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-4s;--r:10deg"><img src="img/ll/bulb.webp" alt=""></div>
+    <h2>An app in <em>5 minutes</em></h2>
+    <div class="grid g4">
+      <div><span class="label">Lovable</span><div class="n">8 mo</div><div class="s">to $100M ARR</div></div>
+      <div><span class="label">Lovable</span><div class="n">200k</div><div class="s">projects a day</div></div>
+      <div><span class="label">Replit</span><div class="n">$525M</div><div class="s">annualised, Apr 2026</div></div>
+      <div><span class="label">Automate</span><div class="n">∞</div><div class="s">ChatGPT · Claude · n8n</div></div>
+    </div>
+    <div class="src">TechCrunch Mar 2026 · getpanto.ai</div>
+  </section>
+<section data-ag="p1" class="slide" data-cp="1"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-0s;--r:10deg"><img src="img/ll/laptop.webp" alt=""></div>
+    <h2>GTM is <em>3 questions</em></h2>
+    <div class="steps">
+      <div><span class="i">01</span><span class="t">Do people want it?</span><span class="s">validate</span></div>
+      <div><span class="i">02</span><span class="t">Can you market it well?</span><span class="s">sell</span></div>
+      <div><span class="i">03</span><span class="t">Can it grow beyond your circle?</span><span class="s">scale</span></div>
+    </div>
+  </section>
+<section data-ag="p1" class="slide center" data-cp="1"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-1s;--r:10deg"><img src="img/ll/rocket.webp" alt=""></div>
+    <div class="grid g4" style="grid-template-columns:repeat(2,1fr);max-width:70vw">
+      <div><span class="label">Video producer</span><div class="n">Weeks</div><div class="s">per launch video</div></div>
+      <div><span class="label">AdaL</span><div class="n">20 min</div><div class="s">same launch quality</div></div>
+    </div>
+  </section>
+<section data-ag="p2" class="slide check center" data-cp="2"><div class="fl" style="width:clamp(110px,11vw,190px);right:2.5vw;bottom:14vh;--r:-6deg"><img src="img/ll/walk_t1.webp" alt=""></div><div class="fl" style="width:clamp(60px,5.5vw,100px);left:2vw;bottom:8vh;animation-delay:-2s;--r:10deg"><img src="img/ll/megaphone.webp" alt=""></div>
+    <h1 style="font-size:clamp(3rem,7.4vw,7.6rem)">Your product at<br><em>their video grade</em></h1>
+  </section>
+<section data-ag="p2" class="slide" data-cp="2"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-3s;--r:10deg"><img src="img/ll/clapper.webp" alt=""></div>
+    <h2>The <em>100</em></h2>
+    <video class="vid" style="margin-top:.6rem;max-height:72vh;width:auto;max-width:100%" src="media/ll-launch-film.mp4" poster="media/ll-launch-film.jpg" controls playsinline preload="metadata"></video>
+  </section>
+<section data-ag="p2" class="slide" data-cp="2">
+    <h2 style="font-size:clamp(1.8rem,3.6vw,4rem)">Lovable <em>to AdaL</em></h2>
+    <div class="pair" style="grid-template-columns:repeat(2,1fr)"><div><video src="media/ll-02-ref.mp4" poster="media/ll-02-ref.jpg" controls playsinline preload="metadata"></video><div class="t">Lovable original</div></div><div><video src="media/ll-02-out.mp4" poster="media/ll-02-out.jpg" controls playsinline preload="metadata"></video><div class="t"><em>AdaL</em> style</div></div></div>
+  </section>
+<section data-ag="p2" class="slide" data-cp="2">
+    <h2 style="font-size:clamp(1.8rem,3.6vw,4rem)">Higgsfield <em>to AdaL</em></h2>
+    <div class="pair" style="grid-template-columns:repeat(2,1fr)"><div><video src="media/ll-04-ref.mp4" poster="media/ll-04-ref.jpg" controls playsinline preload="metadata"></video><div class="t">Higgsfield original</div></div><div><video src="media/ll-04-out.mp4" poster="media/ll-04-out.jpg" controls playsinline preload="metadata"></video><div class="t"><em>AdaL</em> style</div></div></div>
+  </section>
+<section data-ag="p2" class="slide" data-cp="2">
+    <h2 style="font-size:clamp(1.8rem,3.6vw,4rem)">OpenAI for law <em>to AdaL for work</em></h2>
+    <div class="pair" style="grid-template-columns:repeat(2,1fr)"><div><video src="media/ll-05-ref.mp4" poster="media/ll-05-ref.jpg" controls playsinline preload="metadata"></video><div class="t">OpenAI original</div></div><div><video src="media/ll-05-out.mp4" poster="media/ll-05-out.jpg" controls playsinline preload="metadata"></video><div class="t"><em>AdaL</em> style</div></div></div>
+  </section>
+<section data-ag="p2" class="slide" data-cp="2">
+    <h2 style="font-size:clamp(1.8rem,3.6vw,4rem)">Muse <em>to AdaL</em></h2>
+    <div class="pair" style="grid-template-columns:repeat(2,1fr)"><div><video src="media/ll-10-ref.mp4" poster="media/ll-10-ref.jpg" controls playsinline preload="metadata"></video><div class="t">Muse original</div></div><div><video src="media/ll-10-out.mp4" poster="media/ll-10-out.jpg" controls playsinline preload="metadata"></video><div class="t"><em>AdaL</em> style</div></div></div>
+  </section>
+<section data-ag="p2" class="slide" data-cp="2"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-3s;--r:10deg"><img src="img/ll/megaphone.webp" alt=""></div>
+    <h2>Pick your <em>reference</em></h2>
+    <div style="display:flex;align-items:center;gap:clamp(20px,3vw,48px);margin-top:2.4rem">
+      <a class="qr" href="https://adalagent.ai/launch-library?utm_source=luma&amp;utm_medium=event&amp;utm_campaign=dont-just-prompt-it-2026-10&amp;utm_content=jax_slides_launch_library_1" target="_blank" rel="noopener" style="width:clamp(200px,20vw,320px);display:block"><img alt="" data-qr="https://adalagent.ai/launch-library?utm_source=luma&amp;utm_medium=event&amp;utm_campaign=dont-just-prompt-it-2026-10&amp;utm_content=jax_slides_launch_library_1"></a>
+      <div><a class="when" href="https://adalagent.ai/launch-library?utm_source=luma&amp;utm_medium=event&amp;utm_campaign=dont-just-prompt-it-2026-10&amp;utm_content=jax_slides_launch_library_1" target="_blank" rel="noopener" style="font-size:clamp(1.2rem,2.2vw,2.6rem);text-decoration:underline;text-underline-offset:6px">adalagent.ai/launch-library</a><div style="margin-top:.8rem;font-size:clamp(1rem,1.6vw,1.8rem);color:var(--ink-50)">Every video, its prompts, its model</div></div>
+    </div>
+  </section>
+<section data-ag="p2" class="slide" data-cp="2"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-4s;--r:10deg"><img src="img/ll/clapper.webp" alt=""></div>
+    <h2 style="font-size:clamp(2rem,4.2vw,4.6rem)">Prompt <em>1</em></h2>
+    <div class="cmd" style="font-size:clamp(1rem,1.6vw,1.9rem);line-height:1.5;padding:1.4rem 1.6rem">Video: LINK
+
+(Use the video attached to this post itself, not videos from related posts on the page. Keep all your files in the folder XXXX.)
+
+reverse engineering this video, how can you use AdaL video producer capabilities to produce such videos, audios, and other types of the assets (including effects, fonts, transitions, animations)</div>
+  </section>
+<section data-ag="p2" class="slide" data-cp="2"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-0s;--r:10deg"><img src="img/ll/trophy.webp" alt=""></div>
+    <h2 style="font-size:clamp(2rem,4.2vw,4.6rem)">Prompt <em>2</em></h2>
+    <div class="cmd" style="font-size:clamp(1rem,1.6vw,1.9rem);line-height:1.5;padding:1.4rem 1.6rem">ok replicate one using AdaL video producer from scratch</div>
+  </section>
+<section data-ag="p2" class="slide center" data-cp="2"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-1s;--r:10deg"><img src="img/ll/bulb.webp" alt=""></div>
+    <h1 style="font-size:clamp(3rem,7vw,7.4rem)">Send prompt 1 <em>now</em></h1>
+    <div class="when" style="margin-top:2rem;font-size:clamp(1rem,1.8vw,2rem);line-height:1.6">Post in #🔆hackathon-discussions:<br>which video, which model, a screenshot of your AdaL Desktop</div>
+  </section>
+<section data-ag="p3" class="slide check center" data-cp="3"><div class="fl" style="width:clamp(110px,11vw,190px);right:2.5vw;bottom:14vh;--r:-6deg"><img src="img/ll/walk_t1.webp" alt=""></div><div class="fl" style="width:clamp(60px,5.5vw,100px);left:2vw;bottom:8vh;animation-delay:-2s;--r:10deg"><img src="img/ll/laptop.webp" alt=""></div>
+    <h1 style="font-size:clamp(3rem,7.4vw,7.6rem)">Apply it <em>today</em></h1>
+  </section>
+<section data-ag="p3" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-3s;--r:10deg"><img src="img/ll/rocket.webp" alt=""></div><h2>Who's <em>here today</em></h2><div class="steps"><div><span class="i">01</span><span class="t">16 founders with a product</span></div><div><span class="i">02</span><span class="t">11 freelancers and agencies</span></div><div><span class="i">03</span><span class="t">12 at a company</span></div><div><span class="i">04</span><span class="t">13 students and job seekers</span></div></div></section>
+<section data-ag="p3" class="slide" data-cp="3"><h2 style="font-size:clamp(1.8rem,3.6vw,4rem)">Dev tools vs <em>one industry</em></h2><div style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,2vw,32px)"><div><div class="t" style="font-weight:700;margin-bottom:.6rem">Dev tools and AI agents</div><div class="pair" style="grid-template-columns:1fr 1fr"><div><video src="media/b2b-cursor.mp4" poster="media/b2b-cursor.jpg" controls playsinline preload="metadata"></video><div class="t">Cursor</div></div><div><video src="media/b2b-harvey.mp4" poster="media/b2b-harvey.jpg" controls playsinline preload="metadata"></video><div class="t">Harvey</div></div></div></div><div><div class="t" style="font-weight:700;margin-bottom:.6rem">B2B for one industry</div><div class="pair" style="grid-template-columns:1fr 1fr"><div><video src="media/b2b-legora.mp4" poster="media/b2b-legora.jpg" controls playsinline preload="metadata"></video><div class="t">Legora</div></div><div><video src="media/b2b-dreamlabs.mp4" poster="media/b2b-dreamlabs.jpg" controls playsinline preload="metadata"></video><div class="t">Dream Labs</div></div></div></div></div><div class="steps tight" style="margin-top:1.2rem"><div><span class="i">01</span><span class="t">Product UI skill from your app</span></div><div><span class="i">02</span><span class="t">Top 1 to 3 killer features per video, each with its value</span></div></div></section>
+<section data-ag="p3" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-0s;--r:10deg"><img src="img/ll/clapper.webp" alt=""></div>
+    <h2>Same prompts. <em>Why AdaL style?</em></h2>
+    <div class="steps">
+      <div><span class="i">01</span><span class="t">Open AdaL in your product folder</span></div>
+      <div><span class="i">02</span><span class="t">Product UI skill</span><span class="s">sharp at any zoom</span></div>
+      <div><span class="i">03</span><span class="t">Your changelog</span><span class="s">one feature per video</span></div>
+      <div><span class="i">04</span><span class="t">Social listening</span><span class="s">your competitors' hooks</span></div>
+    </div>
+  </section>
+<section data-ag="p3" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-1s;--r:10deg"><img src="img/ll/trophy.webp" alt=""></div>
+    <h2 style="font-size:clamp(2rem,4.2vw,4.6rem)">Product UI <em>skill</em></h2>
+    <div class="cmd" style="font-size:clamp(1rem,1.6vw,1.9rem);line-height:1.5;padding:1.4rem 1.6rem">Make a product UI skill for my app. Use browser use to open it (computer use if it&#x27;s a desktop app), screenshot every main screen and read the real labels from my code. Then rebuild those screens in HTML so you can animate them for my demo videos. Save it as a skill.</div>
+  </section>
+<section data-ag="p3" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-2s;--r:10deg"><img src="img/ll/bulb.webp" alt=""></div>
+    <h2>What makes it <em>slop</em></h2>
+    <div class="steps">
+      <div><span class="i">01</span><span class="t">No reference video</span></div>
+      <div><span class="i">02</span><span class="t">A screen recording of your app</span></div>
+      <div><span class="i">03</span><span class="t">Lots of tiny text</span></div>
+      <div><span class="i">04</span><span class="t">Every feature at once</span></div>
+    </div>
+  </section>
+<section data-ag="p3" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-3s;--r:10deg"><img src="img/ll/laptop.webp" alt=""></div>
+    <h2 style="font-size:clamp(1.8rem,3.6vw,4rem)">One feature <em>a day</em></h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,1.4vw,24px);width:min(70vw,98vh);margin-top:1rem"><div><video src="media/post-1.mp4" poster="media/post-1.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>Desktop on every OS</b><span style="color:var(--ink-50)">15 Oct</span></div></div><div><video src="media/post-2.mp4" poster="media/post-2.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>AdaL Videos</b><span style="color:var(--ink-50)">16 Oct</span></div></div><div><video src="media/post-3.mp4" poster="media/post-3.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>Connectors</b><span style="color:var(--ink-50)">17 Oct</span></div></div><div><video src="media/post-4.mp4" poster="media/post-4.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>New models</b><span style="color:var(--ink-50)">18 Oct</span></div></div><div><video src="media/post-5.mp4" poster="media/post-5.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>Pin and rename chats</b><span style="color:var(--ink-50)">19 Oct</span></div></div><div><video src="media/post-6.mp4" poster="media/post-6.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>Drag and drop images</b><span style="color:var(--ink-50)">20 Oct</span></div></div><div><video src="media/post-7.mp4" poster="media/post-7.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>Windows and Linux</b><span style="color:var(--ink-50)">21 Oct</span></div></div><div><video src="media/post-8.mp4" poster="media/post-8.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>Off npm in 2 commands</b><span style="color:var(--ink-50)">23 Oct</span></div></div><div><video src="media/post-9.mp4" poster="media/post-9.jpg" autoplay loop muted playsinline style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#fff"></video><div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:clamp(.7rem,.95vw,1.05rem)"><b>Gemini 4 Argon, Muse, Music v2</b><span style="color:var(--ink-50)">26 Oct</span></div></div></div>
+  </section>
+<section data-ag="p3" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-4s;--r:10deg"><img src="img/ll/rocket.webp" alt=""></div>
+    <h2 style="font-size:clamp(1.8rem,3.6vw,4rem)">The <em>recipe</em></h2>
+    <div class="two" style="grid-template-columns:1.2fr 1fr;align-items:center">
+      <div class="steps tight">
+        <div><span class="i">01</span><span class="t">Product UI skill</span></div>
+        <div><span class="i">02</span><span class="t">One feature, one video</span></div>
+        <div><span class="i">03</span><span class="t">Queue it in a Google Sheet</span></div>
+        <div><span class="i">04</span><span class="t">AdaL Schedule posts it daily</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:clamp(20px,3vw,48px);margin-top:2.4rem">
+      <a class="qr" href="https://docs.google.com/spreadsheets/d/1TXqwwCclq7N0J_gUkuA-DD6zPOHbDJWWcToFba1tmS4/edit" target="_blank" rel="noopener" style="width:clamp(150px,14vw,230px);display:block"><img alt="" data-qr="https://docs.google.com/spreadsheets/d/1TXqwwCclq7N0J_gUkuA-DD6zPOHbDJWWcToFba1tmS4/edit"></a>
+      <div><a class="when" href="https://docs.google.com/spreadsheets/d/1TXqwwCclq7N0J_gUkuA-DD6zPOHbDJWWcToFba1tmS4/edit" target="_blank" rel="noopener" style="font-size:clamp(1.2rem,2.2vw,2.6rem);text-decoration:underline;text-underline-offset:6px">Open the example sheet</a><div style="margin-top:.8rem;font-size:clamp(1rem,1.6vw,1.8rem);color:var(--ink-50)">Queue + schedule prompt</div></div>
+    </div>
+    </div>
+  </section>
+<section data-ag="p4" class="slide check center" data-cp="3"><div class="fl" style="width:clamp(110px,11vw,190px);right:2.5vw;bottom:14vh;--r:-6deg"><img src="img/ll/jump_2.webp" alt=""></div><div class="fl" style="width:clamp(60px,5.5vw,100px);left:2vw;bottom:8vh;animation-delay:-2s;--r:10deg"><img src="img/ll/megaphone.webp" alt=""></div>
+    <h1 style="font-size:clamp(3rem,7.4vw,7.6rem)">Ship it <em>this week</em></h1>
+  </section>
+<section data-ag="p4" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-1s;--r:10deg"><img src="img/ll/clapper.webp" alt=""></div>
+    <h2>Post it, <em>get rewarded</em></h2>
+    <div class="steps">
+      <div><span class="i">01</span><span class="t">Post your video tagging @adalagent</span><span class="s">X or LinkedIn</span></div>
+      <div><span class="i">02</span><span class="t">Drop the link in Discord</span><span class="s">#🥷adal-online-hackathon</span></div>
+      <div><span class="i">03</span><span class="t">+1 month of AdaL Pro</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:clamp(20px,3vw,48px);margin-top:2.4rem">
+      <a class="qr" href="https://discord.gg/tRnDmgqfct" target="_blank" rel="noopener" style="width:clamp(130px,12vw,200px);display:block"><img alt="" data-qr="https://discord.gg/tRnDmgqfct"></a>
+      <div><a class="when" href="https://discord.gg/tRnDmgqfct" target="_blank" rel="noopener" style="font-size:clamp(1.2rem,2.2vw,2.6rem);text-decoration:underline;text-underline-offset:6px">discord.gg/tRnDmgqfct</a><div style="margin-top:.8rem;font-size:clamp(1rem,1.6vw,1.8rem);color:var(--ink-50)">Join the hackathon chat</div></div>
+    </div>
+  </section>
+<section data-ag="p4" class="slide" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-2s;--r:10deg"><img src="img/ll/trophy.webp" alt=""></div>
+    <h2>Hackathon · <em>Nov 2, 11:59 PM PT</em></h2>
+    <div class="grid g4" style="grid-template-columns:repeat(3,1fr)">
+      <div><span class="label">1st</span><div class="t">1 year of AdaL Pro</div><div class="s">Featured on AdaL channels</div></div>
+      <div><span class="label">2nd</span><div class="t">6 months of Pro</div></div>
+      <div><span class="label">3rd</span><div class="t">3 months of Pro</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:clamp(20px,3vw,48px);margin-top:2.4rem">
+      <a class="qr" href="https://docs.google.com/forms/d/e/1FAIpQLSey1MnU7A-8iLWiucdOtUzUCrefLE-E7yw6WzAZwHhvlAZA6w/viewform" target="_blank" rel="noopener" style="width:clamp(130px,12vw,200px);display:block"><img alt="" data-qr="https://docs.google.com/forms/d/e/1FAIpQLSey1MnU7A-8iLWiucdOtUzUCrefLE-E7yw6WzAZwHhvlAZA6w/viewform"></a>
+      <div><a class="when" href="https://docs.google.com/forms/d/e/1FAIpQLSey1MnU7A-8iLWiucdOtUzUCrefLE-E7yw6WzAZwHhvlAZA6w/viewform" target="_blank" rel="noopener" style="font-size:clamp(1.2rem,2.2vw,2.6rem);text-decoration:underline;text-underline-offset:6px">Submit your project</a><div style="margin-top:.8rem;font-size:clamp(1rem,1.6vw,1.8rem);color:var(--ink-50)">Video in the launch library, post tagging AdaL</div></div>
+    </div>
+  </section>
+<section data-ag="p4" class="slide center" data-cp="3"><div class="fl" style="width:clamp(46px,4vw,72px);right:6.5vw;bottom:2.5vh;animation-delay:-3s;--r:10deg"><img src="img/ll/bulb.webp" alt=""></div>
+    <h1>Thank <em>you</em></h1>
+    <div class="org" style="margin-top:2rem;justify-content:center;gap:2rem"><img class="logo" src="img/logos/adal.svg" alt=""></div>
+  </section>
+</main>
+<aside class="ag" id="ag"><button class="ag-pill" id="agPill" type="button"><span class="ag-clock" id="agClock">--:--</span><span class="ag-now" id="agNow"></span><span class="ag-left" id="agLeft"></span></button><div class="ag-panel"><div class="label">Agenda · PT</div><ol id="agList"></ol></div></aside><script>window.AGENDA=[["w", "09:00", "09:05", "Welcome and setup"], ["p1", "09:05", "09:10", "Everyone builds, nobody ships"], ["p2", "09:10", "09:30", "Your product at their video grade"], ["p3", "09:30", "09:47", "Apply it today"], ["p4", "09:47", "10:00", "Hackathon, rewards, Q&A"]]</script>
+<div class="toasts" id="toasts"></div>
+<div class="qrbar"><a class="slideqr dcqr" href="https://discord.gg/tRnDmgqfct" target="_blank" rel="noopener"><img alt="" src="https://api.qrserver.com/v1/create-qr-code/?size=600x600&amp;margin=0&amp;data=https%3A%2F%2Fdiscord.gg%2FtRnDmgqfct"><div><div class="t">Discord</div><div class="u">Google Docs inside</div></div></a><div class="slideqr"><img alt="" id="slideqr"><div><div class="t">Slides</div><div class="u" id="slideurl"></div><div class="count" id="count">1 / 1</div></div></div></div>
+<div class="progress"><i id="bar"></i></div>
+<script>const slides=[...document.querySelectorAll('.slide')];
+let cur=Math.min(Math.max(parseInt(location.hash.slice(2))||0,0),slides.length-1);
+const params=new URLSearchParams(location.search);
+const KEY=params.get('key');
+if(KEY)document.body.classList.add('presenter');
+const ORIGIN=location.protocol.startsWith('http')?location.origin:'https://jax-build-club-brisbane.vercel.app';
+const ASK=ORIGIN+'/ask';
+
+function show(n){
+  const prevCp=slides[cur]&&slides[cur].dataset.cp;
+  cur=Math.min(Math.max(n,0),slides.length-1);
+  const s=slides[cur];
+  slides.forEach((x,i)=>x.classList.toggle('active',i===cur));
+  document.getElementById('count').textContent=(cur+1)+' / '+slides.length;
+  document.getElementById('bar').style.width=((cur+1)/slides.length*100)+'%';
+  document.body.classList.toggle('dark',s.classList.contains('check'));
+  history.replaceState(null,'',location.search+'#/'+cur);
+  const here=ORIGIN+'/#/'+cur;document.getElementById('slideqr').src=QR(here);document.getElementById('slideurl').textContent=ORIGIN.replace(/^https?:\/\//,'');
+  document.querySelectorAll('.fill,.stack>div').forEach(f=>f.style.width='0');
+  setTimeout(()=>s.querySelectorAll('.fill,.stack>div').forEach(f=>f.style.width=f.dataset.w+'%'),120);
+  if(KEY&&s.dataset.cp)admin({action:'state',cp:+s.dataset.cp});
+  document.querySelectorAll('video').forEach(v=>{if(!s.contains(v))v.pause();else if(v.autoplay)v.play().catch(()=>{})});
+}
+addEventListener('keydown',e=>{
+  if(e.target.closest('input,textarea'))return;
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();show(cur+1)}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(cur-1)}
+  else if(e.key==='Home')show(0);
+  else if(e.key==='End')show(slides.length-1);
+  else if(e.key==='f')document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
+});
+/* Tap and swipe. iOS Safari only fires click on elements it treats as clickable, so the
+   listener lives on #deck (which carries an onclick attribute) instead of window. */
+const deckEl=document.getElementById('deck');
+const skip=e=>e.target.closest('a,button,.toast,video,iframe,.cmd,.qb,input,textarea');
+let tx=null,ty=null,swiped=false;
+deckEl.addEventListener('touchstart',e=>{const t=e.touches[0];tx=t.clientX;ty=t.clientY;swiped=false},{passive:true});
+deckEl.addEventListener('touchend',e=>{if(tx===null)return;const t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty;tx=null;
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5){swiped=true;show(dx<0?cur+1:cur-1)}},{passive:true});
+deckEl.addEventListener('click',e=>{if(swiped){swiped=false;return}if(skip(e))return;show(e.clientX>innerWidth/3?cur+1:cur-1)});
+addEventListener('hashchange',()=>{const n=parseInt(location.hash.slice(2))||0;if(n!==cur)show(n)});
+
+/* ============ LIVE Q&A ============ */
+const QR=u=>'https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=0&data='+encodeURIComponent(u);
+document.querySelectorAll('[data-qr]').forEach(i=>i.src=QR(i.dataset.qr||ASK));
+
+if(KEY)fetch('/api/jev',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:KEY})}).then(r=>r.json()).then(j=>{if(!j.key)return;document.querySelectorAll('[data-jevqr]').forEach(i=>i.src=QR(j.key));document.querySelectorAll('[data-jevkey]').forEach(e=>{e.textContent=j.key;e.style.wordBreak='break-all'})}).catch(()=>{});
+document.querySelectorAll('[data-jevqr]').forEach(i=>{if(!KEY)i.closest('.qr').style.display='none'});
+/* showcase timer */
+let tLeft=180,tRun=null;
+function tDraw(){const el=document.getElementById('timer');if(!el)return;const m=Math.floor(Math.abs(tLeft)/60),s=Math.abs(tLeft)%60;el.textContent=(tLeft<0?'+':'')+m+':'+String(s).padStart(2,'0');el.classList.toggle('over',tLeft<0)}
+addEventListener('keydown',e=>{if(!slides[cur].hasAttribute('data-timer'))return;
+  if(e.key==='t'){if(tRun){clearInterval(tRun);tRun=null}else tRun=setInterval(()=>{tLeft--;tDraw()},1000)}
+  if(e.key==='r'){clearInterval(tRun);tRun=null;tLeft=180;tDraw()}});
+document.querySelectorAll('[data-url]').forEach(e=>e.textContent=ASK.replace(/^https?:\/\//,''));
+document.querySelectorAll('[data-link]').forEach(e=>e.href=ASK);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function admin(b){fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...b,key:KEY})}).catch(()=>{})}
+let seen=null;
+function toast(q){
+  if(!KEY)return;
+  const t=document.createElement('div');t.className='toast';
+  t.innerHTML=`<div class="label">New question · Checkpoint ${q.cp} · ${q.name?esc(q.name):'Anonymous'}</div><p>${esc(q.text)}</p>`;
+  const box=document.getElementById('toasts');box.prepend(t);
+  while(box.children.length>4)box.lastChild.remove();
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),300)},9000);
+}
+function renderLists(qs){
+  document.querySelectorAll('[data-list]').forEach(el=>{
+    const cp=+el.dataset.list;
+    const mine=qs.filter(q=>q.cp===cp).sort((a,b)=>b.votes-a.votes||a.ts-b.ts);
+    el.innerHTML=mine.length?mine.slice(0,6).map(q=>`<div class="item"><div><p>${esc(q.text)}</p><div class="who">${q.name?esc(q.name):'Anonymous'}</div></div><div><span class="v">▲ ${q.votes}</span><button class="x" data-hide="${q.id}" title="Hide">✕</button></div></div>`).join(''):'<div class="none">Scan to ask, anonymous by default</div>';
+  });
+  document.querySelectorAll('[data-hide]').forEach(b=>b.onclick=()=>{admin({action:'hide',id:b.dataset.hide});b.closest('.item').remove()});
+}
+async function poll(){
+  if(!location.protocol.startsWith('http'))return;
+  try{
+    const r=await fetch('/api/questions',{cache:'no-store'});if(!r.ok)return;
+    const j=await r.json();const qs=j.questions||[];
+    if(seen){const fresh=qs.filter(q=>!seen.has(q.id));fresh.forEach(toast);fresh.forEach(q=>qbFresh.add(q.id));if(fresh.length)qbNotify(fresh)}
+    seen=new Set(qs.map(q=>q.id));
+    renderLists(qs);
+    qbRender(qs);
+  }catch{}
+}
+/* ============ QUESTIONS BUBBLE (presenter) ============ */
+const qb=document.createElement('div');qb.className='qb';
+qb.innerHTML=`<div class="qb-panel"><div class="qb-head"><button data-f="0" aria-pressed="true">All</button><button data-f="1">CP 1</button><button data-f="2">CP 2</button><button data-f="3">CP 3</button></div><div class="qb-list"></div></div><button class="qb-btn" aria-label="Questions">?<span class="badge"></span></button>`;
+let qbF=0,qbAll=[],qbFresh=new Set();
+const qbList=()=>[qb.querySelector('.qb-list')];
+function qbHTML(){
+  const qs=qbAll.filter(q=>!qbF||q.cp===qbF).sort((a,b)=>b.ts-a.ts);
+  return qs.length?qs.map(q=>`<div class="qb-item ${qbFresh.has(q.id)?'new':''}"><div><p>${esc(q.text)}</p><div class="who">CP ${q.cp} · ${q.name?esc(q.name):'Anonymous'}</div></div><div><span class="v">▲ ${q.votes}</span><button class="x" data-hide="${q.id}" title="Hide">✕</button></div></div>`).join(''):'<div class="qb-empty">No questions yet</div>';
+}
+function qbRender(qs){
+  if(qs)qbAll=qs;
+  qbList().forEach(el=>{el.innerHTML=qbHTML();el.querySelectorAll('[data-hide]').forEach(b=>b.onclick=()=>{admin({action:'hide',id:b.dataset.hide});qbAll=qbAll.filter(q=>q.id!==b.dataset.hide);qbRender()})});
+  const b=qb.querySelector('.badge');const n=qbFresh.size;b.textContent=n;b.classList.toggle('on',n>0);
+}
+qb.querySelector('.qb-btn').onclick=()=>{qb.classList.toggle('open');if(qb.classList.contains('open')){qbFresh.clear();qbRender()}};
+qb.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{qbF=+b.dataset.f;qb.querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===b));qbRender()});
+function qbNotify(){qbRender()}
+show(cur);
+/* ============ AGENDA PANEL ============ */
+(function(){
+  const A=window.AGENDA||[],ag=document.getElementById('ag');if(!ag)return;
+  const mins=t=>{const [h,m]=t.split(':').map(Number);return h*60+m};
+  const fmt=t=>{let [h,m]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(m).padStart(2,'0')+' '+ap};
+  document.getElementById('agList').innerHTML=A.map(a=>`<li data-k="${a[0]}"><span class="t">${fmt(a[1])}</span><span>${a[3]}</span></li>`).join('');
+  const first=k=>{if(k==='d')return slides.length-1;const i=slides.findIndex(s=>s.dataset.ag===k);return i<0?0:i};
+  document.querySelectorAll('#agList li').forEach(li=>li.onclick=e=>{e.stopPropagation();show(first(li.dataset.k))});
+  try{if(localStorage.getItem('agOpen')==='1')ag.classList.add('open')}catch(e){}
+  const toggle=()=>{ag.classList.toggle('open');try{localStorage.setItem('agOpen',ag.classList.contains('open')?'1':'0')}catch(e){}};
+  document.getElementById('agPill').onclick=e=>{e.stopPropagation();toggle()};
+  ag.addEventListener('click',e=>e.stopPropagation());
+  addEventListener('keydown',e=>{if(e.key==='a'&&!e.target.closest('input,textarea'))toggle()});
+  function tick(){
+    const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'America/Los_Angeles',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+    const hh=+parts.find(p=>p.type==='hour').value%24,mm=+parts.find(p=>p.type==='minute').value,now=hh*60+mm;
+    document.getElementById('agClock').textContent=fmt(hh+':'+mm);
+    const s=document.querySelector('.slide.active');const k=s&&s.dataset.ag;
+    const cur=A.find(a=>a[0]===k)||A[0];
+    document.getElementById('agNow').textContent=fmt(cur[1])+' · '+cur[3];
+    const left=mins(cur[2])-now,el=document.getElementById('agLeft');
+    const inDay=now>=mins(A[0][1])-120&&now<=mins(A[A.length-1][2])+60;
+    el.textContent=!inDay?'':left<0?(-left)+' min over':(now<mins(cur[1])?'starts in '+(mins(cur[1])-now)+' min':left+' min left');
+    el.classList.toggle('over',inDay&&left<0);
+    const ci=A.indexOf(cur);
+    document.querySelectorAll('#agList li').forEach((li,i)=>{li.classList.toggle('cur',i===ci);li.classList.toggle('done',i<ci);
+      li.classList.toggle('clock',inDay&&now>=mins(A[i][1])&&now<mins(A[i][2])&&i!==ci)});
+  }
+  new MutationObserver(tick).observe(document.getElementById('deck'),{subtree:true,attributes:true,attributeFilter:['class']});
+  tick();setInterval(tick,15000);addEventListener('hashchange',tick);addEventListener('keydown',()=>setTimeout(tick,50));
+  document.getElementById('deck').addEventListener('click',()=>setTimeout(tick,50));
+})();
+</script>
+</body>
+</html>

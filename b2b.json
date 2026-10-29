@@ -1,0 +1,46 @@
+[
+ {
+  "title": "Who's <em>here today</em>",
+  "steps": [
+   "16 founders with a product",
+   "11 freelancers and agencies",
+   "12 at a company",
+   "13 students and job seekers"
+  ]
+ },
+ {
+  "title": "Dev tools vs <em>one industry</em>",
+  "split": [
+   {
+    "label": "Dev tools and AI agents",
+    "videos": [
+     {
+      "v": "b2b-cursor",
+      "t": "Cursor"
+     },
+     {
+      "v": "b2b-harvey",
+      "t": "Harvey"
+     }
+    ]
+   },
+   {
+    "label": "B2B for one industry",
+    "videos": [
+     {
+      "v": "b2b-legora",
+      "t": "Legora"
+     },
+     {
+      "v": "b2b-dreamlabs",
+      "t": "Dream Labs"
+     }
+    ]
+   }
+  ],
+  "tips": [
+   "Product UI skill from your app",
+   "Top 1 to 3 killer features per video, each with its value"
+  ]
+ }
+]
